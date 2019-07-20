@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<HEAD>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="theme-color" content="#363636">
+    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+    <link href="/openMCTstyle.css" rel="stylesheet">
+    <title>Erik Villoria </title>
+</HEAD>
+<body>
+    <div id="evContainer">
+        <div id="navigation">
+            <ul id="navList">
+                <li><label for="pwrv">PWR.V</label><input type="checkbox" id="pwrV" checked /> </li>
+                <li><label for="pwrc">PWR.C</label><input type="checkbox" id="pwrC" checked /> </li>
+            </ul>
+        </div>
+        <div>
+            <h1>Time Data</h1>
+            <button type="button" onclick="switchSort()">Sort Order</button>
+            <p id="sortIndicator" class="ascend">Ascending</p>
+            <table id="telemetryHead">
+                    <tr><th>ID</th><th>Timestamp</th><th>Value</th></tr>
+            </table>
+            <table id="telemetryTable">
+                <tr><th></th><th></th><th></th></tr>
+            </table>
+        </div>
+    </div>
+    <script>
+        var sortOrder = 'asc';
+        const endTime = Date.now();
+        const startTime = endTime - 900000;
+        const telemeTable = document.getElementById('telemetryTable');
+        const MCTsocks = new WebSocket('ws://localhost:8080/realtime');
+        
+        const urlPV = `http://localhost:8080/history/pwr.v?start=${startTime}&end=${endTime}`;
+        const urlPC = `http://localhost:8080/history/pwr.c?start=${startTime}&end=${endTime}`;
+        const htPV = new XMLHttpRequest();
+        const htPC = new XMLHttpRequest();
+        htPV.open("GET", urlPV);
+        htPC.open("GET", urlPC);
+        htPV.send();
+        htPC.send();
+
+        htPV.onreadystatechange = (initialPV) => {
+
+            if(htPV.readyState == 4 && htPV.status == 200){
+                let PVresults = JSON.parse(htPV.responseText);
+                htPC.onreadystatechange = (initialPC) => {
+                    if(htPC.readyState == 4 && htPC.status == 200){
+                        let PCresults = JSON.parse(htPC.responseText);
+                        for (let i = 0; i < PVresults.length; i++){
+                            addRow(PVresults[i]);
+                            addRow(PCresults[i]);
+                        }
+                        console.log('finished filling history...');
+                        startSubs();
+                    }
+                }
+            }
+        }
+        
+        MCTsocks.onopen = (event) => {
+            MCTsocks.send('subscribe pwr.v');
+            MCTsocks.send('subscribe pwr.c');
+        }
+        const startSubs = () => {
+            console.log('starting RTC subs');
+            MCTsocks.onmessage = (timeData) => {
+                let dataChunk = JSON.parse(timeData.data);
+                addRow(dataChunk);
+            }
+        }
+        
+        const addRow = (dataChunk) => {
+
+            let dataRow = document.createElement('TR');
+            let powerType = dataChunk.id.split('.');
+            dataRow.className = powerType[1];
+
+            let dataID = document.createElement('TD');
+            let dataIDtext = document.createTextNode(dataChunk.id);
+            dataID.append(dataChunk.id);
+            dataRow.append(dataID);
+
+            let dataTime = document.createElement('TD');
+            let dataTstamp = document.createTextNode(new Date(dataChunk.timestamp).toISOString());
+            dataTime.append(dataTstamp);
+            dataRow.append(dataTime);
+            
+            let dataVal = document.createElement('TD');
+            let dataValue = document.createTextNode(dataChunk.value);
+            dataVal.append(dataValue);
+            dataRow.append(dataVal);
+            
+            if (sortOrder === 'asc'){
+                telemeTable.append(dataRow);
+            } else if (sortOrder === 'desc'){
+                telemeTable.insertBefore(dataRow, telemeTable.childNodes[1]); //.firstChild.nextSibling
+            }
+        }
+
+        var Vswitch = document.getElementById('pwrV');
+        var Cswitch = document.getElementById('pwrC');
+        var sortIndicator = document.getElementById('sortIndicator');
+
+        const switchSort = () => {
+            if (sortIndicator.classList.contains("ascend")){
+                sortIndicator.classList.remove("ascend");
+                sortIndicator.classList.add("descend");
+                sortIndicator.innerHTML = 'Descending';
+                changeOrder('desc');
+            } else {
+                sortIndicator.classList.remove("descend");
+                sortIndicator.classList.add("ascend");
+                sortIndicator.innerHTML = 'Ascending';
+                changeOrder('asc');
+            }
+        }
+
+        const changeOrder = (order) => {
+            sortOrder = order;
+            for (let i = 2; i < telemeTable.childNodes.length; i++){
+                telemeTable.insertBefore(telemeTable.childNodes[i], telemeTable.childNodes[1]);
+            }
+        }
+
+        Vswitch.addEventListener('click', () => {
+            if (Vswitch.checked === true) {
+                console.log('Unsubscribed...subscribing pwr.v');
+                MCTsocks.send('subscribe pwr.v');
+            }
+            if (Vswitch.checked === false) {
+                console.log('Subscribed...unsubscribing pwr.v');
+                MCTsocks.send('unsubscribe pwr.v');
+                removeRows('v');
+            }
+        });
+
+        Cswitch.addEventListener('click', () => {
+            if (Cswitch.checked === true) {
+                console.log('Unsubscribed...subscribing pwr.c');
+                MCTsocks.send('subscribe pwr.c');
+            }
+            if (Cswitch.checked === false) {
+                console.log('Subscribed...unsubscribing pwr.c');
+                MCTsocks.send('unsubscribe pwr.c');
+                removeRows('c');
+            }
+        });
+
+        const removeRows = (pType) => {
+            let removeList = document.getElementsByClassName(pType);
+            while (removeList.length > 0){
+                removeList[0].parentNode.removeChild(removeList[0]);
+            }
+        }
+        
+    </script>
+</body>
+</html>

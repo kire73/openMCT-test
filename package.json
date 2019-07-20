@@ -1,0 +1,23 @@
+{
+  "name": "openmct-test",
+  "version": "1.0.0",
+  "description": "Single page JS application for assessing native JavaScript HTTP and WS queries to time-based telemetry data",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kire73/openMCT-test.git"
+  },
+  "author": "Erik Villoria",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kire73/openMCT-test/issues"
+  },
+  "homepage": "https://github.com/kire73/openMCT-test#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}

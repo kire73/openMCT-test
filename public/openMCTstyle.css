@@ -1,0 +1,28 @@
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+#navList {
+    list-style-type: none;
+}
+
+#telemetryTable{
+    border-collapse: collapse;
+}
+
+#telemetryHead th {
+    min-width: 16em;
+}
+
+#telemetryTable td {
+    min-width: 16em;
+    border: 1px solid black;
+    padding: .2em;
+}
+
+tr.v {
+    background-color: cornflowerblue;
+}
+tr.c {
+    background-color: aquamarine;
+}
